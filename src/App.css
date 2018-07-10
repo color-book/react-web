@@ -1,0 +1,74 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 80px;
+}
+
+.App-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: white;
+}
+
+.App-title {
+  font-size: 1.5em;
+}
+
+.App-intro {
+  font-size: large;
+}
+
+.painters-box {
+  border: 1px solid black;
+  margin-left: 35%;
+  margin-right: 35%;
+  margin-top: 10px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.space {
+  margin-bottom: 20px
+}
+
+.main {
+  display: flex;
+  justify-content: space-between
+}
+
+.left-side {
+  width: 50vw;
+  border-right: 1px solid black;
+}
+
+.right-side {
+  width: 50vw;
+}
+
+.calculate-button {
+  margin-top: 20px;
+  outline: none;
+  border: 2px solid red;
+  background: red;
+  width: 240px;
+  height: 50px;
+  font-size: 20px;
+  font-weight: bolder
+}
+
+.calculate-button:hover {
+  background: #FF5E55;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
