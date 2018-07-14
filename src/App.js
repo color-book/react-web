@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import * as jobCall from './jobCalls';
 import './App.css';
+import { IndexList } from './utilities'
 // import ShowResults from './showResults'
 
 class App extends Component {
@@ -11,27 +12,28 @@ class App extends Component {
     this.state = {
       job_total: undefined,
       down_payment_percentage: undefined,
-      material1: undefined,
-      material2: undefined,
-      material3: undefined,
-      material4: undefined,
+      materials: [{amount: ''}],
       ct_split: undefined,
       sub_split: undefined,
-      name0: undefined,
-      name1: undefined,
-      name2: undefined,
-      weight0: undefined,
-      weight1: undefined,
-      weight2: undefined,
-      hours0: undefined,
-      hours1: undefined,
-      hours2: undefined,
+      labor: [{name: '', weight: '', hours: ''}],
       overall_costs: {},
       painter_rates: []
     }
 
     this.handleInputChange = this.handleInputChange.bind(this);
     this.calculateJob = this.calculateJob.bind(this);
+    this.handleAddMaterials = this.handleAddMaterials.bind(this);
+    this.handleMaterialChange = this.handleMaterialChange.bind(this);
+    this.handleRemoveMaterials = this.handleRemoveMaterials.bind(this);
+    this.handleAddPainter = this.handleAddPainter.bind(this);
+    this.handlePainterChange = this.handlePainterChange.bind(this);
+    this.handleRemovePainter = this.handleRemovePainter.bind(this);
+    this.getIndexPhrase = this.getIndexPhrase.bind(this);
+    this.convertLaborToFloat = this.convertLaborToFloat.bind(this);
+  }
+
+  getIndexPhrase(index) {
+    return IndexList[index]
   }
 
   handleInputChange(stateName, event) {
@@ -43,34 +45,64 @@ class App extends Component {
 
   }
 
+  handlePainterChange = (stateName, index) => (evt) => {
+    const newLabor = this.state.labor.map((labor, lIndex) => {
+      if (index !== lIndex) return labor
+      else {
+        labor[stateName] = evt.target.value
+        return labor
+      }
+    });
+    
+    this.setState({ labor: newLabor });
+  }
+
+  handleAddPainter() {
+    this.setState({ labor: this.state.labor.concat([{name: '', weight: '', hours: ''}]) });
+  }
+
+  handleRemovePainter = (index) => () => {
+    this.setState({ labor: this.state.labor.filter((labor, lIndex) => index !== lIndex) });
+  }
+
+  handleMaterialChange = (index) => (evt) => {
+    const newMaterials = this.state.materials.map((material, mIndex) => {
+      if (index !== mIndex) return material;
+      return {...material, amount: evt.target.value };
+    });
+    
+    this.setState({ materials: newMaterials });
+  }
+
+  handleAddMaterials() {
+    this.setState({ materials: this.state.materials.concat([{amount: ''}]) });
+  }
+
+  handleRemoveMaterials = (index) => () => {
+    this.setState({ materials: this.state.materials.filter((material, mIndex) => index !== mIndex) });
+  }
+
+  convertLaborToFloat() {
+    return this.state.labor.map((item) => {
+      return {name: item.name, weight: parseInt(item.weight, 10) / 100, hours: parseInt(item.hours, 10)}
+    })
+  }
+
   calculateJob() {
 
+    let labor_info = this.convertLaborToFloat()
     let info = {
       job_total: parseFloat(this.state.job_total, 10),
       down_payment_percentage: parseInt(this.state.down_payment_percentage, 10)/100,
-      materials: [parseFloat(this.state.material1, 10), parseFloat(this.state.material2, 10), parseFloat(this.state.material3, 10), parseFloat(this.state.material4, 10)],
+      materials: this.state.materials.map((material) => parseFloat(material.amount)),
       ct_split: parseInt(this.state.ct_split, 10)/100,
       sub_split: parseInt(this.state.sub_split, 10)/100,
-      labor_info: [{
-        name: this.state.name0,
-        weight: parseInt(this.state.weight0, 10)/100,
-        hours: parseInt(this.state.hours0, 10)
-      },{
-        name: this.state.name1,
-        weight: parseInt(this.state.weight1, 10)/100,
-        hours: parseInt(this.state.hours1, 10)
-      },{
-        name: this.state.name2,
-        weight: parseInt(this.state.weight2, 10)/100,
-        hours: parseInt(this.state.hours2, 10)
-      }]
+      labor_info: labor_info
     }
 
-    console.log(info)
+    // console.log(info)
     jobCall.sendJobInfo(info).then(response => {
-      console.log('sign up: ', response)
       this.setState({overall_costs: response.overall_costs, painter_rates: response.painter_rates})
-      // this.props.userLoggedIn(response)
     })
   }
 
@@ -104,30 +136,18 @@ class App extends Component {
             </div>
             <div className="job-container-input">
               <label htmlFor="materials-input">Materials: </label>
-              <input 
-                type="text" 
-                className="form-control" 
-                id="materials-input" 
-                name="materials" 
-                onChange={this.handleInputChange.bind(null, 'material1')}/><br/>
-              <input 
-                type="text" 
-                className="form-control" 
-                id="materials-input" 
-                name="materials" 
-                onChange={this.handleInputChange.bind(null, 'material2')}/><br/>
-              <input 
-                type="text" 
-                className="form-control" 
-                id="materials-input" 
-                name="materials" 
-                onChange={this.handleInputChange.bind(null, 'material3')}/><br/>
-              <input 
-                type="text" 
-                className="form-control" 
-                id="materials-input" 
-                name="materials" 
-                onChange={this.handleInputChange.bind(null, 'material4')}/>
+              {this.state.materials.map((material, index) => (
+                <div className="shareholder" key={index}>
+                  <input
+                    type="text"
+                    placeholder={`${this.getIndexPhrase(index)} material`}
+                    value={material.amount}
+                    onChange={this.handleMaterialChange(index)}
+                  />
+                  <button type="button" onClick={this.handleRemoveMaterials(index)} className="small">Remove</button>
+                </div>
+              ))}
+            <button type="button" onClick={this.handleAddMaterials} className="small">Add Materials</button>
             </div>
             <div className="job-container-input">
               <label htmlFor="ct-split-input">Contractor Split: </label>
@@ -150,104 +170,37 @@ class App extends Component {
 
             <h3>Painters</h3>
             <div className="painters-box">
-              <div className="job-container-input">
-              <label htmlFor="name-input">Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="name-input" 
-                  name="name-input" 
-                  onChange={this.handleInputChange.bind(null, 'name0')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="weight-input">Weight</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="weight-input" 
-                  name="weight" 
-                  onChange={this.handleInputChange.bind(null, 'weight0')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="hours-input">Hours</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="hours-input" 
-                  name="hours" 
-                  onChange={this.handleInputChange.bind(null, 'hours0')}/>
-              </div>
-            </div>
-            {/* <hr /> */}
-            {/* ------------- */}
-
-            <div className="painters-box">
-              <div className="job-container-input">
-              <label htmlFor="name-input">Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="name-input" 
-                  name="name-input" 
-                  onChange={this.handleInputChange.bind(null, 'name1')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="weight-input">Weight</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="weight-input" 
-                  name="weight" 
-                  onChange={this.handleInputChange.bind(null, 'weight1')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="hours-input">Hours</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="hours-input" 
-                  name="hours" 
-                  onChange={this.handleInputChange.bind(null, 'hours1')}/>
-              </div>
-            </div>
-            {/* <hr /> */}
-            {/* ------------- */}
-
-            <div className="painters-box">
-              <div className="job-container-input">
-              <label htmlFor="name-input">Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="name-input" 
-                  name="name-input" 
-                  onChange={this.handleInputChange.bind(null, 'name2')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="weight-input">Weight</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="weight-input" 
-                  name="weight" 
-                  onChange={this.handleInputChange.bind(null, 'weight2')}/>
-              </div>
-              <div className="job-container-input">
-              <label htmlFor="hours-input">Hours</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="hours-input" 
-                  name="hours" 
-                  onChange={this.handleInputChange.bind(null, 'hours2')}/>
-              </div>
+              {this.state.labor.map((labor, index) => (
+                <div className="shareholder" key={index}>
+                  <input
+                    type="text"
+                    placeholder={`Name`}
+                    value={labor.name}
+                    onChange={this.handlePainterChange('name', index)}
+                  />
+                  <input
+                    type="text"
+                    placeholder={`Weight`}
+                    value={labor.weight}
+                    onChange={this.handlePainterChange('weight', index)}
+                  />
+                  <input
+                    type="text"
+                    placeholder={`Hours`}
+                    value={labor.hours}
+                    onChange={this.handlePainterChange('hours', index)}
+                  />
+                  <button type="button" onClick={this.handleRemovePainter(index)} className="small">Remove</button>
+                </div>
+              ))}
+              <button type="button" onClick={this.handleAddPainter} className="small">Add Painter</button>
             </div>
 
           <button className="calculate-button" onClick={this.calculateJob}>Cal-culate. That. Job!</button>
 
           </div>
           <div className="right-side">
-            <h3 class="underline">Results</h3>
+            <h3 className="underline">Results</h3>
             {painter_rates.length > 0 && <div>
               <span>Down Payment: ${overall_costs.down_payment}</span><br/>
               <span>Labor: ${overall_costs.labor}</span><br/>
