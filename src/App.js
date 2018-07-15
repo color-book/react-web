@@ -15,9 +15,12 @@ class App extends Component {
       materials: [{amount: ''}],
       ct_split: undefined,
       sub_split: undefined,
-      labor: [{name: '', weight: '', hours: ''}],
+      labor: [{name: '', weight: '', hours: '', rental: '', reimbursement: '0'}],
       overall_costs: {},
-      painter_rates: []
+      painter_rates: [],
+      costing_errors: {},
+      error: false,
+      errorMessage: ''
     }
 
     this.handleInputChange = this.handleInputChange.bind(this);
@@ -30,6 +33,7 @@ class App extends Component {
     this.handleRemovePainter = this.handleRemovePainter.bind(this);
     this.getIndexPhrase = this.getIndexPhrase.bind(this);
     this.convertLaborToFloat = this.convertLaborToFloat.bind(this);
+    this.roundResult = this.roundResult.bind(this);
   }
 
   getIndexPhrase(index) {
@@ -58,7 +62,7 @@ class App extends Component {
   }
 
   handleAddPainter() {
-    this.setState({ labor: this.state.labor.concat([{name: '', weight: '', hours: ''}]) });
+    this.setState({ labor: this.state.labor.concat([{name: '', weight: '', hours: '', rental: '', reimbursement: '0'}]) });
   }
 
   handleRemovePainter = (index) => () => {
@@ -84,8 +88,18 @@ class App extends Component {
 
   convertLaborToFloat() {
     return this.state.labor.map((item) => {
-      return {name: item.name, weight: parseInt(item.weight, 10) / 100, hours: parseInt(item.hours, 10)}
+      return {
+        name: item.name, 
+        weight: parseInt(item.weight, 10) / 100, 
+        hours: parseInt(item.hours, 10), 
+        rental: parseFloat(item.rental),
+        reimbursement: parseFloat(item.reimbursement)
+      }
     })
+  }
+
+  roundResult(value) {
+    return Math.round(value  * 100) / 100
   }
 
   calculateJob() {
@@ -100,22 +114,30 @@ class App extends Component {
       labor_info: labor_info
     }
 
-    // console.log(info)
-    jobCall.sendJobInfo(info).then(response => {
-      this.setState({overall_costs: response.overall_costs, painter_rates: response.painter_rates})
-    })
+    if (info.ct_split + info.sub_split > 1) {
+      this.setState({error: true, errorMessage: "Contractor and Sub Contractor splits combine to be greater than 100%"})
+    } else {
+      jobCall.sendJobInfo(info).then(response => {
+        this.setState({
+          overall_costs: response.overall_costs, 
+          painter_rates: response.painter_rates,
+          costing_errors: response.costing_errors
+        })
+      })
+    }
   }
 
   render() {
 
-    const {overall_costs, painter_rates} = this.state
+    const {overall_costs, painter_rates, costing_errors} = this.state
 
     return (
       <div className="App">
         <h1>Job Calculator</h1>
         <div className="main">
           <div className="left-side">
-            <h3 className="underline">Inputs</h3>
+            <h2 className="underline">Inputs</h2>
+            <h3>General</h3>
             <div className="job-container-input">
               <label htmlFor="job-total-input">Job Total: </label>
               <input 
@@ -135,21 +157,6 @@ class App extends Component {
                 onChange={this.handleInputChange.bind(null, 'down_payment_percentage')}/>
             </div>
             <div className="job-container-input">
-              <label htmlFor="materials-input">Materials: </label>
-              {this.state.materials.map((material, index) => (
-                <div className="shareholder" key={index}>
-                  <input
-                    type="text"
-                    placeholder={`${this.getIndexPhrase(index)} material`}
-                    value={material.amount}
-                    onChange={this.handleMaterialChange(index)}
-                  />
-                  <button type="button" onClick={this.handleRemoveMaterials(index)} className="small">Remove</button>
-                </div>
-              ))}
-            <button type="button" onClick={this.handleAddMaterials} className="small">Add Materials</button>
-            </div>
-            <div className="job-container-input">
               <label htmlFor="ct-split-input">Contractor Split: </label>
               <input 
                 type="text" 
@@ -167,78 +174,115 @@ class App extends Component {
                 name="sub-split" 
                 onChange={this.handleInputChange.bind(null, 'sub_split')}/>
             </div>
-
-            <h3>Painters</h3>
-            <div className="painters-box">
-              {this.state.labor.map((labor, index) => (
+            <div>
+              <h3 htmlFor="materials-input">Materials </h3>
+              <button type="button" onClick={this.handleAddMaterials} className="small">Add Materials</button>
+              {this.state.materials.map((material, index) => (
                 <div className="shareholder" key={index}>
                   <input
                     type="text"
-                    placeholder={`Name`}
-                    value={labor.name}
-                    onChange={this.handlePainterChange('name', index)}
+                    placeholder={`${this.getIndexPhrase(index)} material`}
+                    value={material.amount}
+                    onChange={this.handleMaterialChange(index)}
                   />
-                  <input
-                    type="text"
-                    placeholder={`Weight`}
-                    value={labor.weight}
-                    onChange={this.handlePainterChange('weight', index)}
-                  />
-                  <input
-                    type="text"
-                    placeholder={`Hours`}
-                    value={labor.hours}
-                    onChange={this.handlePainterChange('hours', index)}
-                  />
+                  <button type="button" onClick={this.handleRemoveMaterials(index)} className="small">Remove</button>
+                </div>
+              ))}
+            </div>
+
+            <h3>Painters</h3>
+            <button type="button" onClick={this.handleAddPainter} className="small">Add Painter</button>
+            <div>
+              {this.state.labor.map((labor, index) => (
+                <div className="painters-box" key={index}>
+                  <div>
+                    <label htmlFor="name">Name: </label>
+                    <input
+                      type="text"
+                      value={labor.name}
+                      name="name"
+                      onChange={this.handlePainterChange('name', index)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="weight">Weight: </label>
+                    <input
+                      type="text"
+                      value={labor.weight}
+                      name="weight"
+                      onChange={this.handlePainterChange('weight', index)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="hours">Hours: </label>
+                    <input
+                      type="text"
+                      value={labor.hours}
+                      name="hours"
+                      onChange={this.handlePainterChange('hours', index)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="rental">Rental: </label>
+                    <input
+                      type="text"
+                      value={labor.rental}
+                      name="rental"
+                      onChange={this.handlePainterChange('rental', index)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="reimbursement">Reimbursement: </label>
+                    <input
+                      type="text"
+                      value={labor.reimbursement}
+                      name="reimbursement"
+                      onChange={this.handlePainterChange('reimbursement', index)}
+                    />
+                  </div>
                   <button type="button" onClick={this.handleRemovePainter(index)} className="small">Remove</button>
                 </div>
               ))}
-              <button type="button" onClick={this.handleAddPainter} className="small">Add Painter</button>
-            </div>
 
-          <button className="calculate-button" onClick={this.calculateJob}>Cal-culate. That. Job!</button>
+          </div>
+
+          <button className="calculate-button" onClick={this.calculateJob}>Calculate</button>
 
           </div>
           <div className="right-side">
-            <h3 className="underline">Results</h3>
-            {painter_rates.length > 0 && <div>
-              <span>Down Payment: ${overall_costs.down_payment}</span><br/>
-              <span>Labor: ${overall_costs.labor}</span><br/>
-              <span>Materials Total: ${overall_costs.materials_total}</span><br/>
-              <span>Contractor Split Amount: ${overall_costs.ct_split}</span><br/>
-              <span>Contractor Split Payout: ${overall_costs.ct_split_final_payout}</span><br/>
-              <span>Sub Contractor Split Amount: ${overall_costs.sub_split}</span><br/>
-              <span>Sub Contractor Split Spill Over: ${overall_costs.sub_split_left_over}</span><br/>
+            <h2 className="underline">Results</h2>
+            {this.state.error && <div>{this.state.errorMessage}</div>}
+            {(!this.state.error && painter_rates.length > 0) && <div>
+              <h3>General</h3>
+              <span>Down Payment: ${this.roundResult(overall_costs.down_payment)}</span><br/>
+              <span>Materials Total: ${this.roundResult(overall_costs.materials_total)}</span><br/>
+              <span>Labor: ${this.roundResult(overall_costs.labor)}</span><br/>
+
+              <h3>Contractor Amounts</h3>
+              <span>Split: ${this.roundResult(overall_costs.ct_split)}</span><br/>
+              <span>Payout: ${this.roundResult(overall_costs.ct_split_final_payout)}</span><br/>
+
+              <h3>Sub Contractor Amounts</h3>
+              <span>Split: ${this.roundResult(overall_costs.sub_split)}</span><br/>
+              <span>Remaining: ${this.roundResult(overall_costs.sub_split_left_over)}</span><br/>
+
+              {costing_errors.errors && <div className="costing-error-message">{costing_errors.error_message}</div>}
 
               <h3>Painters</h3>
-              <div className="painters-box">
-                <span>Name: {painter_rates[0].name}</span><br/>
-                <span>Hourly Average: ${painter_rates[0].hourly_average}</span><br/>
-                <span>Hours: {painter_rates[0].hours}</span><br/>
-                <span>Total Hours: {painter_rates[0].total_hours}</span><br/>
-                <span>Weight: {painter_rates[0].weight}</span><br/>
-                <span>Payout: ${painter_rates[0].payout}</span><br/>
-              </div>
-              <div className="painters-box">
-                <span>Name: {painter_rates[1].name}</span><br/>
-                <span>Hourly Average: ${painter_rates[1].hourly_average}</span><br/>
-                <span>Hours: {painter_rates[1].hours}</span><br/>
-                <span>Total Hours: {painter_rates[1].total_hours}</span><br/>
-                <span>Weight: {painter_rates[1].weight}</span><br/>
-                <span>Payout: ${painter_rates[1].payout}</span><br/>
-              </div>
-              <div className="painters-box">
-                <span>Name: {painter_rates[2].name}</span><br/>
-                <span>Hourly Average: ${painter_rates[2].hourly_average}</span><br/>
-                <span>Hours: {painter_rates[2].hours}</span><br/>
-                <span>Total Hours: {painter_rates[2].total_hours}</span><br/>
-                <span>Weight: {painter_rates[2].weight}</span><br/>
-                <span>Payout: ${painter_rates[2].payout}</span><br/>
-              </div>
+              {painter_rates.map((painter, index) => (
+                <div className="painters-box" key={index}>
+                  <span>Name: {painter.name}</span><br/>
+                  <span>Hourly Average: ${this.roundResult(painter.hourly_average)}</span><br/>
+                  <span>Hours: {painter.hours}</span><br/>
+                  <span>Total Hours: {painter.total_hours}</span><br/>
+                  <span>Weight: {parseFloat(painter.weight, 10) * 100}%</span><br/>
+                  <span>Payout: ${this.roundResult(painter.payout)}</span><br/>
+                </div>
+              ))}
+
             </div>}
           </div>
         </div>
-        {/* <div className="space"></div> */}
       </div>
     );
   }
