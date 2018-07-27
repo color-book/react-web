@@ -11,11 +11,20 @@ class App extends Component {
 
     this.state = {
       job_total: undefined,
-      down_payment_percentage: undefined,
+      down_payment_percentage: '0',
+      down_payment_amount: '0',
       materials: [{amount: ''}],
       ct_split: undefined,
       sub_split: undefined,
-      labor: [{name: '', weight: '', hours: '', rental: '', reimbursement: '0'}],
+      labor: [{
+        name: '', 
+        weight: '', 
+        hours: '', 
+        rental: '', 
+        reimbursement: '0',
+        inTraining: false,
+        trainedBy: ''
+      }],
       overall_costs: {},
       painter_rates: [],
       costing_errors: {},
@@ -34,6 +43,7 @@ class App extends Component {
     this.getIndexPhrase = this.getIndexPhrase.bind(this);
     this.convertLaborToFloat = this.convertLaborToFloat.bind(this);
     this.roundResult = this.roundResult.bind(this);
+    this.useDownPaymentPercentage = this.useDownPaymentPercentage.bind(this);
   }
 
   getIndexPhrase(index) {
@@ -44,7 +54,6 @@ class App extends Component {
 
     let newStateElement = {}
     newStateElement[stateName] = event.target.value
-
     this.setState(newStateElement)
 
   }
@@ -52,12 +61,18 @@ class App extends Component {
   handlePainterChange = (stateName, index) => (evt) => {
     const newLabor = this.state.labor.map((labor, lIndex) => {
       if (index !== lIndex) return labor
+      else if (stateName === "inTraining") {
+        let painters = this.state.labor.filter(painter => !painter.inTraining)
+        labor[stateName] = !labor.inTraining
+        if (labor.inTraining) labor['trainedBy'] = painters[0].name
+        return labor
+      }
       else {
         labor[stateName] = evt.target.value
         return labor
       }
     });
-    
+
     this.setState({ labor: newLabor });
   }
 
@@ -93,7 +108,9 @@ class App extends Component {
         weight: parseInt(item.weight, 10) / 100, 
         hours: parseInt(item.hours, 10), 
         rental: parseFloat(item.rental),
-        reimbursement: parseFloat(item.reimbursement)
+        reimbursement: parseFloat(item.reimbursement),
+        in_training: item.inTraining,
+        trained_by: item.trainedBy
       }
     })
   }
@@ -102,12 +119,27 @@ class App extends Component {
     return Math.round(value  * 100) / 100
   }
 
-  calculateJob() {
+  useDownPaymentPercentage() {
+    let downPaymentPercentage = parseInt(this.state.down_payment_percentage, 10)
+    let downPaymentAmount = parseInt(this.state.down_payment_amount, 10)
+    let usePercentage = false
 
+    if (downPaymentPercentage > 0 && downPaymentAmount === 0) {
+      usePercentage = true
+    }
+
+    return usePercentage
+  }
+
+  calculateJob() {
+    let downPaymentPercentage = parseInt(this.state.down_payment_percentage, 10)
+    let useDownPaymentPercentage = this.useDownPaymentPercentage()
     let labor_info = this.convertLaborToFloat()
     let info = {
       job_total: parseFloat(this.state.job_total, 10),
-      down_payment_percentage: parseInt(this.state.down_payment_percentage, 10)/100,
+      down_payment_percentage: downPaymentPercentage > 0 ? parseInt(this.state.down_payment_percentage, 10)/100 : downPaymentPercentage,
+      down_payment_amount: parseInt(this.state.down_payment_amount, 10),
+      use_down_payment_percentage: useDownPaymentPercentage,
       materials: this.state.materials.map((material) => parseFloat(material.amount)),
       ct_split: parseInt(this.state.ct_split, 10)/100,
       sub_split: parseInt(this.state.sub_split, 10)/100,
@@ -130,6 +162,11 @@ class App extends Component {
   render() {
 
     const {overall_costs, painter_rates, costing_errors} = this.state
+
+    let options = this.state.labor.map((painter, index) => {
+      if (!painter.inTraining) return <option key={index} value={painter.name}>{painter.name}</option>
+      return ''
+    })
 
     return (
       <div className="App">
@@ -155,6 +192,15 @@ class App extends Component {
                 id="down-payment-percentage-input" 
                 name="down-payment-percentage" 
                 onChange={this.handleInputChange.bind(null, 'down_payment_percentage')}/>
+            </div>
+            <div className="job-container-input">
+              <label htmlFor="down-payment-amount-input">Down Payment Amount: </label>
+              <input 
+                type="text" 
+                className="form-control" 
+                id="down-payment-amount-input" 
+                name="down-payment-amount" 
+                onChange={this.handleInputChange.bind(null, 'down_payment_amount')}/>
             </div>
             <div className="job-container-input">
               <label htmlFor="ct-split-input">Contractor Split: </label>
@@ -191,10 +237,10 @@ class App extends Component {
             </div>
 
             <h3>Painters</h3>
-            <button type="button" onClick={this.handleAddPainter} className="small">Add Painter</button>
             <div>
               {this.state.labor.map((labor, index) => (
                 <div className="painters-box" key={index}>
+                  <button type="button" onClick={this.handleRemovePainter(index)} className="small">Remove</button>
                   <div>
                     <label htmlFor="name">Name: </label>
                     <input
@@ -240,10 +286,22 @@ class App extends Component {
                       onChange={this.handlePainterChange('reimbursement', index)}
                     />
                   </div>
-                  <button type="button" onClick={this.handleRemovePainter(index)} className="small">Remove</button>
+                  <div>
+                    <label htmlFor="inTraining">In Training: </label>
+                    <input 
+                      type="checkbox" 
+                      name="inTraining" 
+                      value={labor.inTraining}
+                      onChange={this.handlePainterChange('inTraining', index)}  />
+                  </div>
+                  {labor.inTraining && <div>
+                    <label>Trained By: </label>
+                    <select onChange={this.handlePainterChange('trainedBy', index)}>{options}</select>
+                  </div>}
+
                 </div>
               ))}
-
+            <button type="button" onClick={this.handleAddPainter} className="small">Add Painter</button>
           </div>
 
           <button className="calculate-button" onClick={this.calculateJob}>Calculate</button>
@@ -259,11 +317,11 @@ class App extends Component {
               <span>Labor: ${this.roundResult(overall_costs.labor)}</span><br/>
 
               <h3>Contractor Amounts</h3>
-              <span>Split: ${this.roundResult(overall_costs.ct_split)}</span><br/>
+              <span>Gross Profit: ${this.roundResult(overall_costs.ct_split)}</span><br/>
               <span>Payout: ${this.roundResult(overall_costs.ct_split_final_payout)}</span><br/>
 
               <h3>Sub Contractor Amounts</h3>
-              <span>Split: ${this.roundResult(overall_costs.sub_split)}</span><br/>
+              <span>Labor Payout: ${this.roundResult(overall_costs.sub_split)}</span><br/>
               <span>Remaining: ${this.roundResult(overall_costs.sub_split_left_over)}</span><br/>
 
               {costing_errors.errors && <div className="costing-error-message">{costing_errors.error_message}</div>}
@@ -276,6 +334,7 @@ class App extends Component {
                   <span>Hours: {painter.hours}</span><br/>
                   <span>Total Hours: {painter.total_hours}</span><br/>
                   <span>Weight: {parseFloat(painter.weight, 10) * 100}%</span><br/>
+                  {painter.training_payout > 0 && <div><span>Training: ${this.roundResult(painter.training_payout)}</span><br/></div>}
                   <span>Payout: ${this.roundResult(painter.payout)}</span><br/>
                 </div>
               ))}
