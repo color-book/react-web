@@ -22,6 +22,10 @@ class App extends Component {
         hours: '', 
         rental: '', 
         reimbursement: '0',
+        add_bonus: false,
+        revenue_bonus: false,
+        gp_bonus: false,
+        bonus_percentage: '0',
         inTraining: false,
         trainedBy: ''
       }],
@@ -67,6 +71,12 @@ class App extends Component {
         if (labor.inTraining) labor['trainedBy'] = painters[0].name
         return labor
       }
+      else if (stateName === "gp_bonus" || stateName === "revenue_bonus" || stateName === "add_bonus") {
+        labor["gp_bonus"] = false
+        labor["revenue_bonus"] = false
+        labor[stateName] = !labor[stateName]
+        return labor
+      }
       else {
         labor[stateName] = evt.target.value
         return labor
@@ -110,7 +120,11 @@ class App extends Component {
         rental: parseFloat(item.rental),
         reimbursement: parseFloat(item.reimbursement),
         in_training: item.inTraining,
-        trained_by: item.trainedBy
+        trained_by: item.trainedBy,
+        add_bonus: item.add_bonus,
+        revenue_bonus: item.revenue_bonus,
+        gp_bonus: item.gp_bonus,
+        bonus_percentage: parseFloat(item.bonus_percentage) / 100
       }
     })
   }
@@ -132,7 +146,7 @@ class App extends Component {
   }
 
   calculateJob() {
-    let downPaymentPercentage = parseInt(this.state.down_payment_percentage, 10)
+    let downPaymentPercentage = parseFloat(this.state.down_payment_percentage, 10)
     let useDownPaymentPercentage = this.useDownPaymentPercentage()
     let labor_info = this.convertLaborToFloat()
     let info = {
@@ -286,6 +300,43 @@ class App extends Component {
                       onChange={this.handlePainterChange('reimbursement', index)}
                     />
                   </div>
+                  <br/>
+                  <div>
+                    <label htmlFor="bonus">Add Bonus: </label>
+                    <input 
+                      type="checkbox" 
+                      name="bonus" 
+                      checked={labor.add_bonus}
+                      onChange={this.handlePainterChange('add_bonus', index)}  />
+                  </div>
+                  {labor.add_bonus && <div>
+                    <div>
+                      <label htmlFor="revenue">Revenue Bonus: </label>
+                      <input 
+                        type="checkbox" 
+                        name="revenue" 
+                        checked={labor.revenue_bonus}
+                        onChange={this.handlePainterChange('revenue_bonus', index)}  />
+                    </div>
+                    <div>
+                      <label htmlFor="gross_profit">Gross Profit Bonus: </label>
+                      <input 
+                        type="checkbox" 
+                        name="gross_profit" 
+                        checked={labor.gp_bonus}
+                        onChange={this.handlePainterChange('gp_bonus', index)}  />
+                    </div>
+                  </div>}
+                  {(labor.gp_bonus || labor.revenue_bonus) && <div>
+                    <label>Bonus Percentage: </label>
+                    <input
+                      type="text"
+                      value={labor.bonus_percentage}
+                      name="bonus_percentage"
+                      onChange={this.handlePainterChange('bonus_percentage', index)}
+                    />
+                  </div>}
+                  <br/>
                   <div>
                     <label htmlFor="inTraining">In Training: </label>
                     <input 
@@ -335,6 +386,7 @@ class App extends Component {
                   <span>Total Hours: {painter.total_hours}</span><br/>
                   <span>Weight: {parseFloat(painter.weight, 10) * 100}%</span><br/>
                   {painter.training_payout > 0 && <div><span>Training: ${this.roundResult(painter.training_payout)}</span><br/></div>}
+                  {painter.bonus_amount > 0 && <div><span>Bonus Amount: ${this.roundResult(painter.bonus_amount)}</span><br/></div>}
                   <span>Payout: ${this.roundResult(painter.payout)}</span><br/>
                 </div>
               ))}
