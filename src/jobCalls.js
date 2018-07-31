@@ -12,3 +12,14 @@ export function sendJobInfo(jobInfo) {
     })
   })
 }
+
+export function generatePDF() {
+  return new Promise((resolve, reject) => {
+    axios.get(`${baseUrl}/generate_pdf`, {headers: {'responseType': 'arraybuffer'}})
+    .then(response => {
+      if (response.status === 200) {
+        resolve(response.data)
+      } else reject('nope..')
+    })
+  })
+}

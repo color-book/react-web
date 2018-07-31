@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import * as jobCall from './jobCalls';
 import './App.css';
 import { IndexList } from './utilities'
+// import { saveAs } from 'file-saver/FileSaver';
+import {makePDF} from './pdfGenerator'
 // import ShowResults from './showResults'
 
 class App extends Component {
@@ -10,6 +12,7 @@ class App extends Component {
     super()
 
     this.state = {
+      job_name: undefined,
       job_total: undefined,
       down_payment_percentage: '0',
       down_payment_amount: '0',
@@ -33,11 +36,12 @@ class App extends Component {
       painter_rates: [],
       costing_errors: {},
       error: false,
-      errorMessage: ''
+      errorMessage: '',
     }
 
     this.handleInputChange = this.handleInputChange.bind(this);
     this.calculateJob = this.calculateJob.bind(this);
+    this.generatePDF = this.generatePDF.bind(this);
     this.handleAddMaterials = this.handleAddMaterials.bind(this);
     this.handleMaterialChange = this.handleMaterialChange.bind(this);
     this.handleRemoveMaterials = this.handleRemoveMaterials.bind(this);
@@ -173,6 +177,10 @@ class App extends Component {
     }
   }
 
+  generatePDF() {
+    makePDF(this.state)
+  }
+
   render() {
 
     const {overall_costs, painter_rates, costing_errors} = this.state
@@ -189,6 +197,15 @@ class App extends Component {
           <div className="left-side">
             <h2 className="underline">Inputs</h2>
             <h3>General</h3>
+            <div className="job-container-input">
+              <label htmlFor="job-name-input">Job Name: </label>
+              <input 
+                type="text" 
+                className="form-control" 
+                id="job-name-input" 
+                name="job-name" 
+                onChange={this.handleInputChange.bind(null, 'job_name')}/>
+            </div>
             <div className="job-container-input">
               <label htmlFor="job-total-input">Job Total: </label>
               <input 
@@ -390,7 +407,7 @@ class App extends Component {
                   <span>Payout: ${this.roundResult(painter.payout)}</span><br/>
                 </div>
               ))}
-
+              <button onClick={this.generatePDF}>Convert Results to PDF</button>
             </div>}
           </div>
         </div>
