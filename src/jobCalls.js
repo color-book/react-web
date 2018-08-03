@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const baseUrl = 'http://localhost:5050'
+const production = false;
+const baseUrl = production ? 'http://204.48.31.128/api' : 'http://localhost:5050'
 
 export function sendJobInfo(jobInfo) {
   return new Promise((resolve, reject) => {
