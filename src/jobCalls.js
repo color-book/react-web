@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const production = false;
+const production = true;
 const baseUrl = production ? 'http://204.48.31.128/api' : 'http://localhost:5050'
 
 export function sendJobInfo(jobInfo) {
