@@ -84,5 +84,5 @@ export function makePDF(jobInfo) {
     }]
   };
 
-  pdfMake.createPdf(docDefinition).download(`${jobInfo.job_name}.pdf`);
+  pdfMake.createPdf(docDefinition).open()
 }

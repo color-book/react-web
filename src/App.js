@@ -2,9 +2,7 @@ import React, { Component } from 'react';
 import * as jobCall from './jobCalls';
 import './App.css';
 import { IndexList } from './utilities'
-// import { saveAs } from 'file-saver/FileSaver';
 import {makePDF} from './pdfGenerator'
-// import ShowResults from './showResults'
 
 class App extends Component {
 
@@ -12,7 +10,7 @@ class App extends Component {
     super()
 
     this.state = {
-      job_name: undefined,
+      job_name: 'N/A',
       job_total: undefined,
       down_payment_percentage: '0',
       down_payment_amount: '0',
@@ -61,7 +59,7 @@ class App extends Component {
   handleInputChange(stateName, event) {
 
     let newStateElement = {}
-    newStateElement[stateName] = event.target.value
+    newStateElement[stateName] = event.target.value.replace(/\$|,|%/g, "")
     this.setState(newStateElement)
 
   }
@@ -120,7 +118,7 @@ class App extends Component {
       return {
         name: item.name, 
         weight: parseInt(item.weight, 10) / 100, 
-        hours: parseInt(item.hours, 10), 
+        hours: parseFloat(item.hours), 
         rental: parseFloat(item.rental),
         reimbursement: parseFloat(item.reimbursement),
         in_training: item.inTraining,
